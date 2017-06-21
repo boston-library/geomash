@@ -278,21 +278,29 @@ module Geomash
             return_hash[:coords] = {:latitude=>google_api_result[best_match_index].data['geometry']['location']['lat'].to_s,
                                          :longitude=>google_api_result[best_match_index].data['geometry']['location']['lng'].to_s,
                                          :combined=>google_api_result[best_match_index].data['geometry']['location']['lat'].to_s + ',' + google_api_result[best_match_index].data['geometry']['location']['lng'].to_s}
-          elsif (result['types'] & ['country']).present?
+          end
+          if (result['types'] & ['country']).present?
             #gsub to fix a case of "Macedonia" returning "Macedonia (FYROM)"
             return_hash[:country_part] = result['long_name'].gsub(/ \(.+\)$/, '')
-          elsif (result['types'] & ['administrative_area_level_1']).present?
-            return_hash[:state_part] = result['long_name'].to_ascii.gsub('-city', '').gsub(' City Province', '') #second gsub fix Sofia, Bulgaria test example
-          elsif (result['types'] & ['locality']).present?
+          end
+          if (result['types'] & ['administrative_area_level_1']).present?
+            #second gsub fix Sofia, Bulgaria test example
+            return_hash[:state_part] = result['long_name'].to_ascii.gsub('-city', '').gsub(' City Province', '')
+          end
+          if (result['types'] & ['locality']).present?
             return_hash[:city_part] = result['long_name']
-          elsif (result['types'] & ['sublocality', 'political']).length == 2
-              return_hash[:neighborhood_part] ||= result['long_name'] #See term 'Roxbury (Boston, Mass.)' for why neighborhood should take precedence
-          elsif result['types'].include?('neighborhood')
+          end
+          if (result['types'] & ['sublocality', 'political']).length == 2
+            #See term 'Roxbury (Boston, Mass.)' for why neighborhood should take precedence
+            return_hash[:neighborhood_part] ||= result['long_name']
+          end
+          if result['types'].include?('neighborhood')
             return_hash[:neighborhood_part] = result['long_name']
           end
         end
-
-        return_hash[:term_differs_from_tgn] ||= google_api_result[best_match_index].data['partial_match'] unless google_api_result[best_match_index].data['partial_match'].blank?
+        unless google_api_result[best_match_index].data['partial_match'].blank?
+          return_hash[:term_differs_from_tgn] ||= google_api_result[best_match_index].data['partial_match']
+        end
       end
 
       #This changed in Google... twice now actually... need a better way to handle this
@@ -303,7 +311,7 @@ module Geomash
       #FIXME: Google free API rate limit is 5 requests / 1 second now (used to be 10). Need a better way to handle this.
       sleep(0.1)
 
-      return return_hash
+      return_hash
     end
   end
 end
